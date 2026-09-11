@@ -14,6 +14,7 @@ clear_cache=false
 
 #-----------------------------<FUNCIONES>-----------------------------
 
+#Help
 ayuda(){
 cat <<'EOF'
 NOMBRE
@@ -144,8 +145,8 @@ if [[ ${#nombres[@]} -eq 0 ]] && [[ ${#ids[@]} -eq 0 ]]; then
     exit 1
 fi
 
-#main
 
+#CASO PERSONAJE 
 for nombre in "${nombres[@]}"; do
     nombre=$(echo "$nombre" | xargs)
 
@@ -153,9 +154,6 @@ for nombre in "${nombres[@]}"; do
         echo "Error: El id del personaje '$nombre' solo puede contener numeros." >&2
         continue
     fi
-
-  # Extraigo los campos y los imprimo
-
 if resultado=$(consultar_cache "people_$nombre"); then
     echo "Datos desde caché:"
 else
@@ -183,9 +181,7 @@ echo "  Birth Year: $birth_year"
 
 done
 
-
-  # CASO PELICULA
-
+# CASO PELICULA
 for id in "${ids[@]}"; do
     id=$(echo "$id" | xargs)
 
@@ -194,7 +190,6 @@ for id in "${ids[@]}"; do
         continue
     fi
 
-    # CASO PELICULA
     if resultado=$(consultar_cache "film_$id"); then
         echo "Datos desde caché:"
     else
