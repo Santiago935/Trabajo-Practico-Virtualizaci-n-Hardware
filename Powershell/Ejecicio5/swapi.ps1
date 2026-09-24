@@ -2,18 +2,18 @@
 
 <#
 .SYNOPSIS
-    Buscador de información de personajes y peliculas de Star Wars
+    Buscador de informacion de personajes y peliculas de Star Wars
 
 .DESCRIPTION
-    Consulta información de personajes y películas de Star Wars utilizando la API de Star Wars.
+    Consulta informacion de personajes y peliculas de Star Wars utilizando la API de Star Wars.
     Almacena los resultados en un archivo cache del cual puede ser eliminado.
     La busqueda se puede realizar por id de personaje o pelicula
 
 .PARAMETER people
-        Id de los personajes a buscar. Múltiples IDs se separan por comas.
+        Id de los personajes a buscar. Multiples IDs se separan por comas.
 
 .PARAMETER film
-        Id de las películas a buscar. Múltiples IDs se separan por comas.
+        Id de las películas a buscar. Multiples IDs se separan por comas.
 
 .PARAMETER clear
     Elimina el archivo de cache si existe.
@@ -31,8 +31,8 @@
 
 
 Param(
-    [Parameter(Mandatory=$false, ValueFromRemainingArguments=$true)] [id[]]$people,
-    [Parameter(Mandatory=$false)] [id[]]$film,
+    [Parameter(Mandatory=$false, ValueFromRemainingArguments=$true)] [string[]]$people,
+    [Parameter(Mandatory=$false)] [string[]]$film,
     [Parameter(Mandatory=$false)] [switch]$clear,
     [Parameter(Mandatory=$false)] [switch]$help
 )
@@ -51,8 +51,14 @@ function guardarCache {
 function consultarCache {
     if (Test-Path $archivoCache) {
         try {
-            $contenido = Get-Content $archivoCache -Raw | ConvertFrom-Json -AsHashtable
-            if ($contenido) { return $contenido }
+            $json = Get-Content $archivoCache -Raw
+            if ([string]::IsNullOrWhiteSpace($json)) { return @{} }
+            $objeto = $json | ConvertFrom-Json
+            $tabla = @{}
+            foreach ($prop in $objeto.PSObject.Properties) {
+                $tabla[$prop.Name] = $prop.Value
+            }
+            return $tabla
         } catch { }
     }
     return @{}
@@ -82,10 +88,10 @@ function mostrarPelicula {
 }
 
 function procesarBusqueda {
-    param([string]$claveCache, [string]$url)
+    param([string]$claveCache, [string]$url, [string]$tipo)
 
     if ($cache.ContainsKey($claveCache)) {
-        Write-Host "Obteniendo datos desde CACHÉ para: $claveCache" -ForegroundColor DarkGray
+        Write-Host "Obteniendo datos desde CACHE para: $claveCache" -ForegroundColor DarkGray
         $datos = $cache[$claveCache]
     } else {
         try {
@@ -95,21 +101,33 @@ function procesarBusqueda {
             guardarCache $cache
         } catch {
             Write-Host "Error: No se encontraron resultados o hubo un fallo en la API para la consulta '$claveCache'." -ForegroundColor Red
-            return
+            return $false
         }
     }
 
     # La API devuelve una lista en 'results'
+    if ($datos.result) { $datos = $datos.result }
     if ($datos.results) {
-        foreach ($pj in $datos.results) {
-            mostrarPersonaje $pj
-            $script:personajesEncontrados++
+        $datos = $datos.results | ForEach-Object {
+            if ($_.properties) {
+                $_.properties | Add-Member -NotePropertyName id -NotePropertyValue $_.uid -PassThru -Force
+            } else {
+                $_
+            }
         }
-    } else {
-        # Es un solo personaje (búsqueda por ID)
-        mostrarPersonaje $datos
-        $script:personajesEncontrados++
+    } elseif ($datos.properties) {
+        $datos = $datos.properties | Add-Member -NotePropertyName id -NotePropertyValue $datos.uid -PassThru -Force
     }
+
+    foreach ($item in @($datos)) {
+        if ($tipo -eq "personaje") {
+            mostrarPersonaje $item
+        } else {
+            mostrarPelicula $item
+        }
+    }
+
+    return $true
 }
 
 # -----------------------------<PROGRAMA PRINCIPAL>-----------------------------
@@ -129,9 +147,9 @@ if ($clear) {
     }
     if (Test-Path $archivoCache) {
         Remove-Item $archivoCache
-        Write-Host "Caché limpiado exitosamente." -ForegroundColor Green
+        Write-Host "Cache limpiado exitosamente." -ForegroundColor Green
     } else {
-        Write-Host "No hay archivo de caché para limpiar." -ForegroundColor Yellow
+        Write-Host "No hay archivo de cache para limpiar." -ForegroundColor Yellow
     }
     exit 0
 }
@@ -148,7 +166,7 @@ if (-not $people -and -not $film) {
 }
 
 $cache = consultarCache
-$elementosPorcesados = 0
+$elementosProcesados = 0
 
 try {
     if ($people) {
