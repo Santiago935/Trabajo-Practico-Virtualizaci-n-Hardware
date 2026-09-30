@@ -1,4 +1,14 @@
 #!/bin/bash
+# ==============================================================
+#  Virtualización de Hardware - APL 1 - 2026 Q2
+#  Ejercicio 4 - Demonio de monitoreo y backups
+#
+#  Integrantes del grupo:
+#    - Almada, Keila Mariel - DNI: 46291918
+#    - Manghi Scheck, Santiago - DNI: 95054445
+#    - Rivera Mamani, Victor Leoncio - DNI: 44258557
+#    - Torres Moran, Maria Celeste - DNI: 44005719
+# ==============================================================
 
 mostrar_ayuda() {
     cat <<EOF
@@ -38,7 +48,7 @@ demonio_activo() {
     [[ -f "$pf" ]] || return 1
     pid=$(<"$pf")
     if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null \
-        && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "${0##*/}"; then
+        && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -E -q "ejercicio4\.sh|demonio\.sh"; then
         return 0
     fi
     rm -f "$pf"

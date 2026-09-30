@@ -35,10 +35,10 @@ Cada carpeta `ejercicioN` contiene el script correspondiente y, cuando el ejerci
 
 | Ejercicio | Bash | PowerShell | Descripción |
 |---|---|---|---|
-| 1 | ⬜ Pendiente | ⬜ Pendiente | Validación de jugadas de lotería a partir de archivos CSV por agencia, comparando contra los números ganadores y generando un resultado en JSON (por pantalla o archivo). |
+| 1 | ✅ | ✅ | Validación de jugadas de lotería a partir de archivos CSV por agencia, comparando contra los números ganadores y generando un resultado en JSON (por pantalla o archivo). |
 | 2 | ✅ | ✅ | Producto escalar y trasposición de matrices numéricas leídas desde un archivo de texto plano, con separador configurable. |
 | 3 | ✅ | ✅ | Búsqueda de archivos duplicados dentro de un directorio y sus subdirectorios (mismo nombre y mismo tamaño, sin importar el contenido). |
-| 4 | ⬜ Pendiente | ⬜ Pendiente | Demonio que monitorea un directorio y, al detectar un archivo duplicado (mismo criterio del ejercicio 3), genera un log y arma un backup comprimido. |
+| 4 | ✅ | ✅ | Demonio que monitorea un directorio y, al detectar un archivo duplicado (mismo criterio del ejercicio 3), genera un log y arma un backup comprimido. |
 | 5 | ✅ | ✅ | Consulta de personajes y películas de Star Wars contra la API [swapi.tech](https://swapi.tech), con cache local de resultados. |
 
 ## Cómo ejecutar los scripts
@@ -46,16 +46,26 @@ Cada carpeta `ejercicioN` contiene el script correspondiente y, cuando el ejerci
 Todos los scripts de Bash muestran ayuda con `-h` / `--help`:
 
 ```bash
-./ejercicio3.sh --help
+./ejercicio1.sh --help
 ```
 
 Todos los scripts de PowerShell muestran ayuda con `Get-Help`:
 
 ```powershell
-Get-Help ./ejercicio3.ps1 -Detailed
+Get-Help ./ejercicio1.ps1 -Detailed
 ```
 
 ### Ejemplos
+
+**Ejercicio 1 — Lotería**
+```bash
+./ejercicio1.sh -d ./lote_prueba -p
+./ejercicio1.sh -d ./lote_prueba -a ./salida.json
+```
+```powershell
+./ejercicio1.ps1 -directorio .\lote_prueba -pantalla
+./ejercicio1.ps1 -directorio .\lote_prueba -archivo .\salida.json
+```
 
 **Ejercicio 2 — Producto escalar / trasposición de matrices**
 ```bash
@@ -75,12 +85,24 @@ Get-Help ./ejercicio3.ps1 -Detailed
 ./ejercicio3.ps1 -directorio ./lote_prueba
 ```
 
-**Ejercicio 5 — Consulta a SWAPI**
+**Ejercicio 4 — Demonio de monitoreo y backups**
 ```bash
-./swapi.sh --people "1,2" --film "1,2"
+./ejercicio4.sh -d ./monitor -s ./salida
+./ejercicio4.sh -d ./monitor -k
 ```
 ```powershell
-./swapi.ps1 -people 1,2 -film 1,2
+./ejercicio4.ps1 -directorio .\monitor -salida .\salida
+./ejercicio4.ps1 -directorio .\monitor -kill
+```
+
+**Ejercicio 5 — Consulta a SWAPI**
+```bash
+./ejercicio5.sh --people "1,2" --film "1,2"
+./ejercicio5.sh -p 1 -f 1
+```
+```powershell
+./ejercicio5.ps1 -people 1,2 -film 1,2
+./ejercicio5.ps1 -people 1 -film 1
 ```
 
 ## Criterios generales aplicados
