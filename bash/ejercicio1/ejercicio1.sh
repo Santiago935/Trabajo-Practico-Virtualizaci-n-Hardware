@@ -102,7 +102,7 @@ fi
 # Numeros ganadores: primera linea no vacia, 5 valores entre 0 y 99
 GANADORES_LINEA=$(tr -d '\r ' < "$ARCHIVO_GANADORES" | grep -m1 -v '^$')
 if ! [[ "$GANADORES_LINEA" =~ ^([0-9]{1,2},){4}[0-9]{1,2}$ ]]; then
-    error "El archivo de ganadores debe tener 5 numeros del 0 al 99 separados por coma."
+    error "El archivo de ganadores debe tener 5 numeros del 0 al 99 separados por coma, se encontraron valores incorrectos. Se cancela el proceso"
 fi
  
 # Lista de CSV a procesar (se excluye el archivo de ganadores si esta en el mismo directorio)

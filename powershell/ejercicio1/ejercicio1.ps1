@@ -72,7 +72,7 @@ param(
 
 function Mostrar-ErrorYSalir {
     param([string]$Mensaje)
-    Write-Error "Error: $Mensaje"
+    $Host.UI.WriteErrorLine("Error: $Mensaje")
     exit 1
 }
 
@@ -89,7 +89,7 @@ try {
         Where-Object { $_.Trim() -ne "" } | Select-Object -First 1
 
     if (-not $lineaGanadores -or $lineaGanadores.Trim() -notmatch '^(\d{1,2},){4}\d{1,2}$') {
-        Mostrar-ErrorYSalir "El archivo de ganadores debe tener 5 numeros del 0 al 99 separados por coma."
+        Mostrar-ErrorYSalir "El archivo de ganadores debe tener 5 numeros del 0 al 99 separados por coma, se encontraron valores incorrectos. Se cancela el proceso."
     }
     $numerosGanadores = $lineaGanadores.Trim().Split(",") | ForEach-Object { [int]$_ }
 
