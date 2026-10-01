@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================
-#  Virtualización de Hardware - APL 1 - 2026 Q2
+#  Virtualizacion de Hardware - APL 1 - 2026 Q2
 #  Ejercicio 5 - Consulta de Star Wars (SWAPI)
 #
 #  Integrantes del grupo:
@@ -27,15 +27,15 @@ Uso:
   $(basename "$0") -c | --clear
   $(basename "$0") -h | --help
 
-Descripción:
-  Consulta información de personajes y películas de Star Wars utilizando la
-  API swapi.tech. Almacena en caché local (archivo_cache.json) los resultados
+Descripcion:
+  Consulta informacion de personajes y peliculas de Star Wars utilizando la
+  API swapi.tech. Almacena en cache local (archivo_cache.json) los resultados
   para optimizar consultas sucesivas.
 
-Parámetros:
+Parametros:
   -p, --people <id,id,...>  Id o ids de los personajes a buscar (separados por coma).
-  -f, --film <id,id,...>    Id o ids de las películas a buscar (separados por coma).
-  -c, --clear               Elimina el archivo de caché local.
+  -f, --film <id,id,...>    Id o ids de las peliculas a buscar (separados por coma).
+  -c, --clear               Elimina el archivo de cache local.
   -h, --help                Muestra esta ayuda.
 
 Ejemplos:
@@ -59,7 +59,7 @@ for arg in "$@"; do
     fi
 done
 
-# Verificación de dependencias requeridas
+# Verificacion de dependencias requeridas
 if ! command -v curl &>/dev/null; then
     error_usuario "Se requiere la herramienta 'curl' para realizar consultas HTTP."
 fi
@@ -68,7 +68,7 @@ if ! command -v jq &>/dev/null; then
     error_usuario "Se requiere la herramienta 'jq' para procesar los datos JSON. Puede instalarla con: sudo apt install jq"
 fi
 
-# Inicializar caché si no existe o está vacío
+# Inicializar cache si no existe o esta vacio
 if [[ ! -f "$ARCHIVO_CACHE" || ! -s "$ARCHIVO_CACHE" ]]; then
     echo "{}" > "$ARCHIVO_CACHE" 2>/dev/null || true
 fi
@@ -122,17 +122,17 @@ consultar_api() {
     body=$(echo "$resp" | sed '$d')
 
     if [[ "$http_code" -eq 404 ]]; then
-        echo "Error: No se encontró $tipo con ID '$id' (404 Not Found)." >&2
+        echo "Error: No se encontro $tipo con ID '$id' (404 Not Found)." >&2
         return 1
     elif [[ "$http_code" -ne 200 ]]; then
-        echo "Error: La API respondió con código de estado HTTP $http_code para $tipo con ID '$id'." >&2
+        echo "Error: La API respondio con codigo de estado HTTP $http_code para $tipo con ID '$id'." >&2
         return 1
     fi
 
     local resultado
     resultado=$(echo "$body" | jq -e '.result' 2>/dev/null)
     if [[ $? -ne 0 || -z "$resultado" || "$resultado" == "null" ]]; then
-        echo "Error: La respuesta de la API no contiene un resultado válido para $tipo con ID '$id'." >&2
+        echo "Error: La respuesta de la API no contiene un resultado valido para $tipo con ID '$id'." >&2
         return 1
     fi
 
@@ -142,7 +142,7 @@ consultar_api() {
 }
 
 # --------------------------------------------------------------
-# Parseo de parámetros (cualquier orden)
+# Parseo de parametros (cualquier orden)
 # --------------------------------------------------------------
 PEOPLE_RAW=""
 FILM_RAW=""
@@ -155,12 +155,12 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         -p|--people)
-            [[ $# -ge 2 ]] || error_usuario "El parámetro '$1' requiere una lista de IDs."
+            [[ $# -ge 2 ]] || error_usuario "El parametro '$1' requiere una lista de IDs."
             PEOPLE_RAW="$2"
             shift 2
             ;;
         -f|--film)
-            [[ $# -ge 2 ]] || error_usuario "El parámetro '$1' requiere una lista de IDs."
+            [[ $# -ge 2 ]] || error_usuario "El parametro '$1' requiere una lista de IDs."
             FILM_RAW="$2"
             shift 2
             ;;
@@ -169,30 +169,30 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            error_usuario "Opción no reconocida: '$1'. Utilice -h o --help para ver la ayuda."
+            error_usuario "Opcion no reconocida: '$1'. Utilice -h o --help para ver la ayuda."
             ;;
     esac
 done
 
 if [[ $CLEAR_FLAG -eq 1 ]]; then
     if [[ -n "$PEOPLE_RAW" || -n "$FILM_RAW" ]]; then
-        error_usuario "El parámetro -c / --clear no puede combinarse con -p o -f."
+        error_usuario "El parametro -c / --clear no puede combinarse con -p o -f."
     fi
     if [[ -f "$ARCHIVO_CACHE" ]]; then
         rm -f "$ARCHIVO_CACHE"
-        echo "El archivo de caché local ha sido eliminado."
+        echo "El archivo de cache local ha sido eliminado."
     else
-        echo "No existe archivo de caché local para eliminar."
+        echo "No existe archivo de cache local para eliminar."
     fi
     exit 0
 fi
 
 if [[ -z "$PEOPLE_RAW" && -z "$FILM_RAW" ]]; then
-    error_usuario "Debe indicar al menos un parámetro de búsqueda: -p/--people o -f/--film."
+    error_usuario "Debe indicar al menos un parametro de busqueda: -p/--people o -f/--film."
 fi
 
 # --------------------------------------------------------------
-# Procesamiento de búsquedas
+# Procesamiento de busquedas
 # --------------------------------------------------------------
 declare -a PERSONAJES_JSON=()
 declare -a PELICULAS_JSON=()
@@ -206,7 +206,7 @@ if [[ -n "$PEOPLE_RAW" ]]; then
         [[ -z "$id" ]] && continue
 
         if [[ ! "$id" =~ ^[0-9]+$ ]] || [[ "$id" -le 0 ]]; then
-            echo "Error: El ID de personaje '$id' no es válido. Debe ser un número entero positivo." >&2
+            echo "Error: El ID de personaje '$id' no es valido. Debe ser un numero entero positivo." >&2
             HUBO_ERROR=1
             continue
         fi
@@ -227,7 +227,7 @@ if [[ -n "$FILM_RAW" ]]; then
         [[ -z "$id" ]] && continue
 
         if [[ ! "$id" =~ ^[0-9]+$ ]] || [[ "$id" -le 0 ]]; then
-            echo "Error: El ID de película '$id' no es válido. Debe ser un número entero positivo." >&2
+            echo "Error: El ID de pelicula '$id' no es valido. Debe ser un numero entero positivo." >&2
             HUBO_ERROR=1
             continue
         fi
@@ -268,7 +268,7 @@ fi
 
 if [[ ${#PELICULAS_JSON[@]} -gt 0 ]]; then
     [[ ${#PERSONAJES_JSON[@]} -gt 0 ]] && echo ""
-    echo "Películas:"
+    echo "Peliculas:"
     idx=0
     for pel in "${PELICULAS_JSON[@]}"; do
         [[ $idx -gt 0 ]] && echo ""

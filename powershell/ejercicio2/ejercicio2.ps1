@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Realiza el producto escalar o la trasposición de una matriz numérica.
+    Realiza el producto escalar o la trasposicion de una matriz numerica.
 
 .DESCRIPTION
     Operaciones disponibles (mutuamente excluyentes):
-      1. Producto escalar: Multiplica cada elemento de la matriz por un número entero.
-      2. Trasposición: Intercambia filas por columnas (dimensión M x N -> N x M).
+      1. Producto escalar: Multiplica cada elemento de la matriz por un numero entero.
+      2. Trasposicion: Intercambia filas por columnas (dimension M x N -> N x M).
 
     El resultado se guarda en un nuevo archivo denominado 'salida.<nombreArchivoEntrada>'
     ubicado exactamente en el mismo directorio donde se encuentra el archivo de la matriz original.
@@ -15,20 +15,20 @@
     Se aceptan rutas relativas, absolutas y con espacios.
 
 .PARAMETER producto
-    Valor entero que se utilizará para realizar el producto escalar.
-    No se puede usar conjuntamente con el parámetro -trasponer.
+    Valor entero que se utilizara para realizar el producto escalar.
+    No se puede usar conjuntamente con el parametro -trasponer.
 
 .PARAMETER trasponer
-    Indica que se debe realizar la operación de trasposición sobre la matriz.
-    No se puede usar conjuntamente con el parámetro -producto.
+    Indica que se debe realizar la operacion de trasposicion sobre la matriz.
+    No se puede usar conjuntamente con el parametro -producto.
 
 .PARAMETER separador
-    Carácter único utilizado como separador de columnas.
-    No puede ser un dígito numérico ni el símbolo menos ('-').
+    Caracter unico utilizado como separador de columnas.
+    No puede ser un digito numerico ni el simbolo menos ('-').
 
 .EXAMPLE
     Get-Help .\ejercicio2.ps1 -Detailed
-    Muestra la documentación y modo de uso detallado del script.
+    Muestra la documentacion y modo de uso detallado del script.
 
 .EXAMPLE
     .\ejercicio2.ps1 -matriz ".\pruebas\matriz_consigna.txt" -producto 2 -separador "|"
@@ -72,19 +72,19 @@ param(
     [Alias('t')]
     [switch]$trasponer,
 
-    [Parameter(Mandatory = $true, ParameterSetName = 'Producto', HelpMessage = 'Carácter separador de columnas')]
-    [Parameter(Mandatory = $true, ParameterSetName = 'Trasponer', HelpMessage = 'Carácter separador de columnas')]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Producto', HelpMessage = 'Caracter separador de columnas')]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Trasponer', HelpMessage = 'Caracter separador de columnas')]
     [Alias('s')]
     [ValidateNotNullOrEmpty()]
     [ValidateScript({
         if ($_.Length -ne 1) {
-            throw "El separador debe ser exactamente un único carácter."
+            throw "El separador debe ser exactamente un unico caracter."
         }
         if ($_ -eq '-') {
-            throw "El carácter '-' no puede utilizarse como separador (se confunde con números negativos)."
+            throw "El caracter '-' no puede utilizarse como separador (se confunde con numeros negativos)."
         }
         if ($_ -match '^[0-9]$') {
-            throw "Un dígito numérico no puede utilizarse como separador de columnas."
+            throw "Un digito numerico no puede utilizarse como separador de columnas."
         }
         $true
     })]
@@ -107,7 +107,7 @@ function Notificar-Error {
 function Obtener-DirectorioTemporal {
     <#
     .SYNOPSIS
-        Garantiza la obtención o creación de un directorio temporal, priorizando /tmp.
+        Garantiza la obtencion o creacion de un directorio temporal, priorizando /tmp.
     #>
     $dirTmp = "/tmp"
     if (-not (Test-Path -LiteralPath $dirTmp)) {
@@ -124,7 +124,7 @@ function Obtener-DirectorioTemporal {
 function Validar-Y-CargarMatriz {
     <#
     .SYNOPSIS
-        Carga la matriz validando estructura, formato y valores numéricos.
+        Carga la matriz validando estructura, formato y valores numericos.
     #>
     param(
         [string]$RutaArchivo,
@@ -133,12 +133,12 @@ function Validar-Y-CargarMatriz {
 
     $item = Get-Item -LiteralPath $RutaArchivo
     if ($item.Length -eq 0) {
-        throw "El archivo de la matriz está vacío."
+        throw "El archivo de la matriz esta vacio."
     }
 
     $lineas = @(Get-Content -LiteralPath $RutaArchivo)
     if ($lineas.Count -eq 0) {
-        throw "El archivo de la matriz no contiene líneas procesables."
+        throw "El archivo de la matriz no contiene lineas procesables."
     }
 
     $filasMatriz = [System.Collections.Generic.List[object]]::new()
@@ -150,18 +150,18 @@ function Validar-Y-CargarMatriz {
         $lineaTrimeada = $linea.Trim()
 
         if ([string]::IsNullOrEmpty($lineaTrimeada)) {
-            throw "El archivo contiene una fila vacía en la línea $numFila. La matriz es inválida."
+            throw "El archivo contiene una fila vacia en la linea $numFila. La matriz es invalida."
         }
 
         if ($linea.StartsWith($Delimitador)) {
-            throw "La fila $numFila comienza con el separador, indicando una columna vacía inicial."
+            throw "La fila $numFila comienza con el separador, indicando una columna vacia inicial."
         }
 
         if ($linea.EndsWith($Delimitador)) {
-            throw "La fila $numFila termina con el separador, indicando una columna vacía final."
+            throw "La fila $numFila termina con el separador, indicando una columna vacia final."
         }
 
-        # Separar por el carácter delimitador
+        # Separar por el caracter delimitador
         $elementos = $linea.Split([char]$Delimitador)
         $numCols = $elementos.Count
 
@@ -173,7 +173,7 @@ function Validar-Y-CargarMatriz {
             $cantColumnasEsperada = $numCols
         }
         elseif ($numCols -ne $cantColumnasEsperada) {
-            throw "La matriz es inválida: la fila $numFila tiene $numCols columna(s) y se esperaban $cantColumnasEsperada."
+            throw "La matriz es invalida: la fila $numFila tiene $numCols columna(s) y se esperaban $cantColumnasEsperada."
         }
 
         $filaValores = [System.Collections.Generic.List[double]]::new()
@@ -182,12 +182,12 @@ function Validar-Y-CargarMatriz {
             $valorTexto = $elementos[$c].Trim()
 
             if ([string]::IsNullOrEmpty($valorTexto)) {
-                throw "La matriz contiene un valor vacío en la fila $numFila, columna $($c + 1)."
+                throw "La matriz contiene un valor vacio en la fila $numFila, columna $($c + 1)."
             }
 
-            # Validación de formato numérico (enteros y decimales con punto, positivos o negativos)
+            # Validacion de formato numerico (enteros y decimales con punto, positivos o negativos)
             if ($valorTexto -notmatch '^-?([0-9]+(\.[0-9]+)?|\.[0-9]+)$') {
-                throw "La matriz contiene un valor no numérico '$($elementos[$c])' en la fila $numFila, columna $($c + 1)."
+                throw "La matriz contiene un valor no numerico '$($elementos[$c])' en la fila $numFila, columna $($c + 1)."
             }
 
             $numDouble = [double]::Parse($valorTexto, [System.Globalization.CultureInfo]::InvariantCulture)
@@ -298,7 +298,7 @@ try {
     # Cargar y validar la matriz
     $matrizCargada = Validar-Y-CargarMatriz -RutaArchivo $rutaMatriz -Delimitador $separador
 
-    # Procesar operación solicitada
+    # Procesar operacion solicitada
     $resultadoLineas = $null
     if ($PSCmdlet.ParameterSetName -eq 'Producto') {
         $resultadoLineas = Calcular-ProductoEscalar -MatrizObj $matrizCargada -Escalar $producto -Delimitador $separador
@@ -318,14 +318,14 @@ try {
     Move-Item -LiteralPath $archivoTemporal -Destination $rutaSalida -Force
     $archivoTemporal = $null
 
-    Write-Host "Operación realizada correctamente." -ForegroundColor Green
+    Write-Host "Operacion realizada correctamente." -ForegroundColor Green
     Write-Host "Archivo de salida generado: $rutaSalida"
 }
 catch {
     Notificar-Error -Mensaje $_.Exception.Message
 }
 finally {
-    # Limpieza garantizada del archivo temporal tanto en éxito como en fallo
+    # Limpieza garantizada del archivo temporal tanto en exito como en fallo
     if ($null -ne $archivoTemporal -and (Test-Path -LiteralPath $archivoTemporal)) {
         Remove-Item -LiteralPath $archivoTemporal -Force -ErrorAction SilentlyContinue
     }

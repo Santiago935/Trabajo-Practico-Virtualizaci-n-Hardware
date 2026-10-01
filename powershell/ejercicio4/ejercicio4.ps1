@@ -4,22 +4,22 @@
 
 .DESCRIPTION
     Monitorea un directorio y todos sus subdirectorios en segundo plano como proceso demonio.
-    Utiliza System.IO.FileSystemWatcher para detectar la creación de archivos.
-    Si se detecta que un archivo nuevo tiene el mismo nombre y el mismo tamaño que otro
-    archivo existente dentro del árbol del directorio monitoreado (criterio de duplicado del
+    Utiliza System.IO.FileSystemWatcher para detectar la creacion de archivos.
+    Si se detecta que un archivo nuevo tiene el mismo nombre y el mismo tamano que otro
+    archivo existente dentro del arbol del directorio monitoreado (criterio de duplicado del
     Ejercicio 3), registra el evento en un archivo 'duplicados.log' y genera un archivo comprimido
     ZIP con los archivos duplicados en la carpeta de salida.
     
     El nombre del archivo de backup tiene el formato 'yyyyMMdd-HHmmss.zip'.
     El script se ejecuta como demonio en segundo plano sin requerir comandos adicionales del usuario.
-    Permite finalizar un demonio previamente iniciado para el directorio mediante el parámetro -kill.
-    No permite ejecutar más de un demonio para el mismo directorio al mismo tiempo.
+    Permite finalizar un demonio previamente iniciado para el directorio mediante el parametro -kill.
+    No permite ejecutar mas de un demonio para el mismo directorio al mismo tiempo.
 
 .PARAMETER directorio
     Ruta del directorio a monitorear (obligatorio). Acepta rutas relativas, absolutas o con espacios.
 
 .PARAMETER salida
-    Ruta del directorio donde se guardarán los archivos comprimidos de backup y el archivo 'duplicados.log'.
+    Ruta del directorio donde se guardaran los archivos comprimidos de backup y el archivo 'duplicados.log'.
     Obligatorio al iniciar el monitoreo. No puede ubicarse dentro del directorio monitoreado.
 
 .PARAMETER kill
@@ -36,10 +36,10 @@
 
 .EXAMPLE
     .\ejercicio4.ps1 -directorio .\monitor -kill
-    Detiene el demonio que está monitoreando el directorio especificado.
+    Detiene el demonio que esta monitoreando el directorio especificado.
 
 .NOTES
-    Virtualización de Hardware - APL 1 - 2026 Q2 - Ejercicio 4
+    Virtualizacion de Hardware - APL 1 - 2026 Q2 - Ejercicio 4
     Integrantes:
       - Almada, Keila Mariel - DNI: 46291918
       - Manghi Scheck, Santiago - DNI: 95054445
@@ -57,13 +57,13 @@ param(
             throw "El directorio '$_' no existe."
         }
         if (-not (Test-Path -LiteralPath $_ -PathType Container)) {
-            throw "La ruta '$_' no corresponde a un directorio válido."
+            throw "La ruta '$_' no corresponde a un directorio valido."
         }
         $true
     })]
     [string]$directorio,
 
-    [Parameter(Mandatory = $true, ParameterSetName = 'Monitorear', HelpMessage = "Ruta del directorio donde se guardarán los backups y el log.")]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Monitorear', HelpMessage = "Ruta del directorio donde se guardaran los backups y el log.")]
     [Alias("s")]
     [ValidateNotNullOrEmpty()]
     [string]$salida,
@@ -72,7 +72,7 @@ param(
     [Alias("k")]
     [switch]$kill,
 
-    # Parámetro de uso interno para la ejecución del proceso en segundo plano
+    # Parametro de uso interno para la ejecucion del proceso en segundo plano
     [Parameter(Mandatory = $false, DontShow = $true)]
     [switch]$ModoDemonio
 )
@@ -91,7 +91,7 @@ function Mostrar-MensajeError {
 
 function Obtener-RutaArchivoPid {
     param([string]$RutaDir)
-    # Genera una ruta única para el archivo PID basada en el hash MD5 de la ruta absoluta normalizada
+    # Genera una ruta unica para el archivo PID basada en el hash MD5 de la ruta absoluta normalizada
     $rutaNormalizada = [System.IO.Path]::GetFullPath($RutaDir).TrimEnd('\', '/').ToLowerInvariant()
     $md5 = [System.Security.Cryptography.MD5]::Create()
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($rutaNormalizada)
@@ -120,7 +120,7 @@ function Test-DemonioEnEjecucion {
     }
     catch {}
 
-    # Si el archivo existía pero el proceso ya finalizó, se elimina el archivo huérfano
+    # Si el archivo existia pero el proceso ya finalizo, se elimina el archivo huerfano
     Remove-Item -LiteralPath $RutaPidFile -Force -ErrorAction SilentlyContinue
     return $false
 }
@@ -171,7 +171,7 @@ function Procesar-ArchivoCandidato {
     $nombreArchivo = $archivoItem.Name
     $tamanoArchivo = $archivoItem.Length
 
-    # Buscar duplicados en el directorio monitoreado (mismo nombre y tamaño, distinto path)
+    # Buscar duplicados en el directorio monitoreado (mismo nombre y tamano, distinto path)
     $duplicados = [System.Collections.Generic.List[string]]::new()
     $duplicados.Add($archivoItem.FullName)
 
@@ -186,7 +186,7 @@ function Procesar-ArchivoCandidato {
         $duplicados.Add($otro.FullName)
     }
 
-    # Si hay 2 o más archivos con el mismo nombre y tamaño, es un duplicado
+    # Si hay 2 o mas archivos con el mismo nombre y tamano, es un duplicado
     if ($duplicados.Count -gt 1) {
         $timestampBackup = (Get-Date).ToString("yyyyMMdd-HHmmss")
         $nombreZip = "$timestampBackup.zip"
@@ -205,7 +205,7 @@ function Procesar-ArchivoCandidato {
             $exitoZip = $true
         }
         catch {
-            # Si falla Compress-Archive, intentar eliminar el archivo zip parcial si quedó creado
+            # Si falla Compress-Archive, intentar eliminar el archivo zip parcial si quedo creado
             if (Test-Path -LiteralPath $rutaZip) {
                 Remove-Item -LiteralPath $rutaZip -Force -ErrorAction SilentlyContinue
             }
@@ -241,7 +241,7 @@ function Iniciar-BucleDemonio {
 
     try {
         while ($true) {
-            # Esperar eventos con un timeout de 1000 ms para poder responder a la eliminación del PID file o señales de corte
+            # Esperar eventos con un timeout de 1000 ms para poder responder a la eliminacion del PID file o senales de corte
             $cambio = $watcher.WaitForChanged([System.IO.WatcherChangeTypes]::Created -bor [System.IO.WatcherChangeTypes]::Renamed, 1000)
 
             if (-not (Test-Path -LiteralPath $RutaPidFile)) {
@@ -287,7 +287,7 @@ $archivoPid = Obtener-RutaArchivoPid -RutaDir $directorioAbsoluto
 # --- Caso 1: Detener demonio (-kill) ---
 if ($kill) {
     if (-not (Test-DemonioEnEjecucion -RutaPidFile $archivoPid)) {
-        Mostrar-MensajeError "No hay ningún demonio en ejecución para el directorio '$directorioAbsoluto'."
+        Mostrar-MensajeError "No hay ningun demonio en ejecucion para el directorio '$directorioAbsoluto'."
     }
 
     try {
@@ -320,7 +320,7 @@ if ($ModoDemonio) {
     exit 0
 }
 
-# --- Caso 3: Lanzar demonio en segundo plano (Invocación por el usuario) ---
+# --- Caso 3: Lanzar demonio en segundo plano (Invocacion por el usuario) ---
 if ([string]::IsNullOrWhiteSpace($salida)) {
     Mostrar-MensajeError "Debe indicar el directorio de salida con -salida."
 }
@@ -352,7 +352,7 @@ catch {
     Mostrar-MensajeError "No se tienen permisos de escritura en el directorio de salida '$salidaAbsoluta'."
 }
 
-# Validar que el directorio de salida no esté dentro del directorio monitoreado ni sea el mismo
+# Validar que el directorio de salida no este dentro del directorio monitoreado ni sea el mismo
 $dirMonitoreadoNorm = $directorioAbsoluto.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
 $dirSalidaNorm = $salidaAbsoluta.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
 
@@ -363,7 +363,7 @@ if ($dirSalidaNorm.StartsWith($dirMonitoreadoNorm, [System.StringComparison]::Or
 
 # Validar si ya existe un demonio activo para este directorio
 if (Test-DemonioEnEjecucion -RutaPidFile $archivoPid) {
-    Mostrar-MensajeError "Ya existe un demonio en ejecución para el directorio '$directorioAbsoluto'."
+    Mostrar-MensajeError "Ya existe un demonio en ejecucion para el directorio '$directorioAbsoluto'."
 }
 
 # Determinar ejecutable y ruta absoluta del script actual
@@ -393,7 +393,7 @@ try {
         }
     }
     catch {
-        # Si WMI no está disponible, se utiliza Start-Process
+        # Si WMI no esta disponible, se utiliza Start-Process
     }
 
     if (-not $procesoId) {
@@ -422,5 +422,5 @@ catch {
     if (Test-Path -LiteralPath $archivoPid) {
         Remove-Item -LiteralPath $archivoPid -Force -ErrorAction SilentlyContinue
     }
-    Mostrar-MensajeError "Ocurrió un fallo al intentar iniciar el demonio: $($_.Exception.Message)"
+    Mostrar-MensajeError "Ocurrio un fallo al intentar iniciar el demonio: $($_.Exception.Message)"
 }

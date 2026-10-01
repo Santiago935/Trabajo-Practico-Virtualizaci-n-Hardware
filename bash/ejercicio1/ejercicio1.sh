@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # ==============================================================
-#  Virtualización de Hardware - APL 1 - 2026 Q2
-#  Ejercicio 1 - Validación de jugadas de lotería
+#  Virtualizacion de Hardware - APL 1 - 2026 Q2
+#  Ejercicio 1 - Validacion de jugadas de loteria
 #
 #  Integrantes del grupo:
 #    - Almada, Keila Mariel - DNI: 46291918
@@ -11,7 +11,7 @@
 #    - Torres Moran, Maria Celeste - DNI: 44005719
 # ==============================================================
 
-# Archivo con los 5 números ganadores (CSV, una sola línea).
+# Archivo con los 5 numeros ganadores (CSV, una sola linea).
 # Por defecto: "ganadores.csv" junto al script.
 
 ARCHIVO_GANADORES=""
@@ -22,10 +22,10 @@ ayuda() {
     cat << AYUDA
 Uso: $(basename "$0") -d <directorio> ( -a <archivo.json> | -p )
  
-Procesa las jugadas de lotería de todas las agencias (un CSV por agencia)
+Procesa las jugadas de loteria de todas las agencias (un CSV por agencia)
 y informa en formato JSON las jugadas con 5, 4 y 3 aciertos.
  
-Parámetros:
+Parametros:
   -d, --directorio  Ruta del directorio con los archivos CSV a procesar. (obligatorio)
   -a, --archivo     Ruta completa del archivo JSON de salida.
                     No se puede usar junto con -p / --pantalla.
@@ -35,7 +35,7 @@ Parámetros:
  
 Debe indicarse exactamente una forma de salida: -a o -p.
  
-Números ganadores:
+Numeros ganadores:
   Se leen del archivo "ganadores.csv" ubicado dentro del directorio
   indicado con -d / --directorio.
  
@@ -51,14 +51,14 @@ error() {
     exit 1
 }
  
-# Limpieza de temporales: se ejecuta siempre (éxito, error o Ctrl+C)
+# Limpieza de temporales: se ejecuta siempre (exito, error o Ctrl+C)
 limpiar() {
     [[ -n "$TMP_SALIDA" && -f "$TMP_SALIDA" ]] && rm -f "$TMP_SALIDA"
 }
 trap limpiar EXIT
 trap 'exit 130' INT TERM
  
-# ---------- Lectura de parámetros (cualquier orden) ----------
+# ---------- Lectura de parametros (cualquier orden) ----------
 OPCIONES=$(getopt -o d:a:ph --long directorio:,archivo:,pantalla,help -n "$(basename "$0")" -- "$@") \
     || { echo "Use -h o --help para ver la ayuda." >&2; exit 1; }
 eval set -- "$OPCIONES"
@@ -74,12 +74,12 @@ while true; do
         -p|--pantalla)   PANTALLA=1; shift ;;
         -h|--help)       ayuda; exit 0 ;;
         --)              shift; break ;;
-        *)               error "Parámetro inesperado: $1" ;;
+        *)               error "Parametro inesperado: $1" ;;
     esac
 done
  
 # ---------- Validaciones ----------
-[[ -z "$DIRECTORIO" ]] && error "Falta el parámetro obligatorio -d / --directorio."
+[[ -z "$DIRECTORIO" ]] && error "Falta el parametro obligatorio -d / --directorio."
 [[ -n "$ARCHIVO" && $PANTALLA -eq 1 ]] && error "No se pueden usar -a / --archivo y -p / --pantalla a la vez."
 [[ -z "$ARCHIVO" && $PANTALLA -eq 0 ]] && error "Debe indicar una salida: -a / --archivo o -p / --pantalla."
  
@@ -97,15 +97,15 @@ if [[ -n "$ARCHIVO" ]]; then
 fi
  
 [[ -f "$ARCHIVO_GANADORES" && -r "$ARCHIVO_GANADORES" ]] \
-    || error "No se encontró el archivo de números ganadores '$ARCHIVO_GANADORES'."
+    || error "No se encontro el archivo de numeros ganadores '$ARCHIVO_GANADORES'."
  
-# Números ganadores: primera línea no vacía, 5 valores entre 0 y 99
+# Numeros ganadores: primera linea no vacia, 5 valores entre 0 y 99
 GANADORES_LINEA=$(tr -d '\r ' < "$ARCHIVO_GANADORES" | grep -m1 -v '^$')
 if ! [[ "$GANADORES_LINEA" =~ ^([0-9]{1,2},){4}[0-9]{1,2}$ ]]; then
-    error "El archivo de ganadores debe tener 5 números del 0 al 99 separados por coma."
+    error "El archivo de ganadores debe tener 5 numeros del 0 al 99 separados por coma."
 fi
  
-# Lista de CSV a procesar (se excluye el archivo de ganadores si está en el mismo directorio)
+# Lista de CSV a procesar (se excluye el archivo de ganadores si esta en el mismo directorio)
 RUTA_GAN=$(realpath "$ARCHIVO_GANADORES")
 ARCHIVOS=()
 while IFS= read -r -d '' f; do
@@ -118,7 +118,7 @@ done < <(find "$DIRECTORIO" -maxdepth 1 -type f -iname '*.csv' -print0 | sort -z
 # ---------- Procesamiento con AWK ----------
 procesar() {
     awk -v ganadores="$GANADORES_LINEA" '
-    function esc(s,   i, c, out) {          # escape mínimo para JSON
+    function esc(s,   i, c, out) {          # escape minimo para JSON
         out = ""
         for (i = 1; i <= length(s); i++) {
             c = substr(s, i, 1)
@@ -149,7 +149,7 @@ procesar() {
             else if (i > 1 && $i + 0 > 99) valida = 0
         }
         if (!valida) {
-            printf "Aviso: línea inválida ignorada (%s, línea %d)\n", FILENAME, FNR > "/dev/stderr"
+            printf "Aviso: linea invalida ignorada (%s, linea %d)\n", FILENAME, FNR > "/dev/stderr"
             next
         }
  
@@ -187,10 +187,10 @@ procesar() {
  
 # ---------- Salida ----------
 if [[ $PANTALLA -eq 1 ]]; then
-    procesar || error "Ocurrió un problema al procesar los archivos de jugadas."
+    procesar || error "Ocurrio un problema al procesar los archivos de jugadas."
 else
     TMP_SALIDA=$(mktemp /tmp/ejercicio1.XXXXXX) || error "No se pudo crear un archivo temporal."
-    procesar > "$TMP_SALIDA" || error "Ocurrió un problema al procesar los archivos de jugadas."
+    procesar > "$TMP_SALIDA" || error "Ocurrio un problema al procesar los archivos de jugadas."
     cp "$TMP_SALIDA" "$ARCHIVO" || error "No se pudo escribir el archivo de salida '$ARCHIVO'."
     echo "Resultado guardado en: $ARCHIVO"
 fi

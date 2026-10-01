@@ -112,6 +112,3 @@ Get-Help ./ejercicio1.ps1 -Detailed
 - Manejo de errores con mensajes claros orientados a un usuario sin conocimientos técnicos.
 - Limpieza de archivos temporales al finalizar (`trap` en Bash, `try/catch/finally` en PowerShell), tanto en ejecución exitosa como por error.
 
-## Entrega
-
-El código fuente de cada ejercicio se entrega resuelto en Bash y en PowerShell, junto con los lotes de prueba correspondientes, siguiendo la estructura de carpetas exigida por la cátedra.

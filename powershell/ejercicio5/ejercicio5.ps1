@@ -1,21 +1,21 @@
 <#
 .SYNOPSIS
-    Consulta información de personajes y películas de Star Wars (SWAPI).
+    Consulta informacion de personajes y peliculas de Star Wars (SWAPI).
 
 .DESCRIPTION
-    Consulta información básica de personajes y películas utilizando la API pública swapi.tech.
-    Almacena los resultados en un archivo de caché local (archivo_cache.json) para optimizar
+    Consulta informacion basica de personajes y peliculas utilizando la API publica swapi.tech.
+    Almacena los resultados en un archivo de cache local (archivo_cache.json) para optimizar
     consultas repetidas.
-    Los parámetros -people y -film aceptan arrays nativos de PowerShell (separados por coma).
+    Los parametros -people y -film aceptan arrays nativos de PowerShell (separados por coma).
 
 .PARAMETER people
     Id o ids de los personajes a buscar (tipo array, ej: -people 1,2).
 
 .PARAMETER film
-    Id o ids de las películas a buscar (tipo array, ej: -film 1,2).
+    Id o ids de las peliculas a buscar (tipo array, ej: -film 1,2).
 
 .PARAMETER clear
-    Elimina el archivo de caché local si existe.
+    Elimina el archivo de cache local si existe.
 
 .EXAMPLE
     Get-Help .\ejercicio5.ps1 -Detailed
@@ -33,7 +33,7 @@
     .\ejercicio5.ps1 -clear
 
 .NOTES
-    Virtualización de Hardware - APL 1 - 2026 Q2 - Ejercicio 5
+    Virtualizacion de Hardware - APL 1 - 2026 Q2 - Ejercicio 5
     Integrantes del grupo:
       - Almada, Keila Mariel - DNI: 46291918
       - Manghi Scheck, Santiago - DNI: 95054445
@@ -47,11 +47,11 @@ param(
     [Alias('p')]
     [string[]]$people,
 
-    [Parameter(Mandatory = $false, ParameterSetName = 'Consultar', HelpMessage = 'Id o ids de las películas a buscar.')]
+    [Parameter(Mandatory = $false, ParameterSetName = 'Consultar', HelpMessage = 'Id o ids de las peliculas a buscar.')]
     [Alias('f')]
     [string[]]$film,
 
-    [Parameter(Mandatory = $true, ParameterSetName = 'LimpiarCache', HelpMessage = 'Elimina el archivo de caché local.')]
+    [Parameter(Mandatory = $true, ParameterSetName = 'LimpiarCache', HelpMessage = 'Elimina el archivo de cache local.')]
     [Alias('c')]
     [switch]$clear
 )
@@ -59,13 +59,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Ruta del archivo de caché local en el mismo directorio del script
+# Ruta del archivo de cache local en el mismo directorio del script
 $scriptDir = Split-Path -Parent $PSCommandPath
 if (-not $scriptDir) { $scriptDir = "." }
 $archivoCache = Join-Path $scriptDir "archivo_cache.json"
 
 # =============================================================================
-# FUNCIONES DE CACHÉ
+# FUNCIONES DE CACHE
 # =============================================================================
 
 function Obtener-Cache {
@@ -82,7 +82,7 @@ function Obtener-Cache {
             }
         }
         catch {
-            # Si el archivo está corrupto, se reinicializará
+            # Si el archivo esta corrupto, se reinicializara
         }
     }
     return [ordered]@{}
@@ -95,7 +95,7 @@ function Guardar-Cache {
         Set-Content -LiteralPath $archivoCache -Value $json -Encoding UTF8 -Force -ErrorAction Stop
     }
     catch {
-        Write-Warning "No se pudo actualizar el archivo de caché local."
+        Write-Warning "No se pudo actualizar el archivo de cache local."
     }
 }
 
@@ -125,7 +125,7 @@ function Mostrar-Pelicula {
 }
 
 # =============================================================================
-# CONSULTA A LA API / CACHÉ
+# CONSULTA A LA API / CACHE
 # =============================================================================
 
 function Consultar-Elemento {
@@ -150,14 +150,14 @@ function Consultar-Elemento {
             return $resultado
         }
         else {
-            [Console]::Error.WriteLine("Error: La API no devolvió un resultado válido para $Tipo con ID '$Id'.")
+            [Console]::Error.WriteLine("Error: La API no devolvio un resultado valido para $Tipo con ID '$Id'.")
             return $null
         }
     }
     catch {
         $mensajeHttp = $_.Exception.Message
         if ($mensajeHttp -match "404") {
-            [Console]::Error.WriteLine("Error: No se encontró $Tipo con ID '$Id' (404 Not Found).")
+            [Console]::Error.WriteLine("Error: No se encontro $Tipo con ID '$Id' (404 Not Found).")
         }
         else {
             [Console]::Error.WriteLine("Error al consultar la API para $Tipo con ID '$Id': $mensajeHttp")
@@ -170,21 +170,21 @@ function Consultar-Elemento {
 # FLUJO PRINCIPAL
 # =============================================================================
 
-# Caso 1: Limpieza de caché
+# Caso 1: Limpieza de cache
 if ($PSCmdlet.ParameterSetName -eq 'LimpiarCache') {
     if (Test-Path -LiteralPath $archivoCache) {
         Remove-Item -LiteralPath $archivoCache -Force -ErrorAction Stop
-        Write-Output "El archivo de caché local ha sido eliminado."
+        Write-Output "El archivo de cache local ha sido eliminado."
     }
     else {
-        Write-Output "No existe archivo de caché local para eliminar."
+        Write-Output "No existe archivo de cache local para eliminar."
     }
     exit 0
 }
 
-# Caso 2: Validación de parámetros obligatorios en modo consulta
+# Caso 2: Validacion de parametros obligatorios en modo consulta
 if (-not $people -and -not $film) {
-    [Console]::Error.WriteLine("Error: Debe ingresar al menos un parámetro de búsqueda (-people o -film).")
+    [Console]::Error.WriteLine("Error: Debe ingresar al menos un parametro de busqueda (-people o -film).")
     exit 1
 }
 
@@ -200,7 +200,7 @@ if ($people) {
         if ([string]::IsNullOrEmpty($idStr)) { continue }
 
         if ($idStr -notmatch '^\d+$' -or [int64]$idStr -le 0) {
-            [Console]::Error.WriteLine("Error: El ID de personaje '$idStr' no es válido. Debe ser un número entero positivo.")
+            [Console]::Error.WriteLine("Error: El ID de personaje '$idStr' no es valido. Debe ser un numero entero positivo.")
             $huboError = $true
             continue
         }
@@ -215,14 +215,14 @@ if ($people) {
     }
 }
 
-# Procesar películas (se itera directamente el array, SIN .split)
+# Procesar peliculas (se itera directamente el array, SIN .split)
 if ($film) {
     foreach ($item in $film) {
         $idStr = "$item".Trim()
         if ([string]::IsNullOrEmpty($idStr)) { continue }
 
         if ($idStr -notmatch '^\d+$' -or [int64]$idStr -le 0) {
-            [Console]::Error.WriteLine("Error: El ID de película '$idStr' no es válido. Debe ser un número entero positivo.")
+            [Console]::Error.WriteLine("Error: El ID de pelicula '$idStr' no es valido. Debe ser un numero entero positivo.")
             $huboError = $true
             continue
         }
@@ -248,7 +248,7 @@ if ($resultadosPersonajes.Count -gt 0) {
 
 if ($resultadosPeliculas.Count -gt 0) {
     if ($resultadosPersonajes.Count -gt 0) { Write-Output "" }
-    Write-Output "Películas:"
+    Write-Output "Peliculas:"
     for ($i = 0; $i -lt $resultadosPeliculas.Count; $i++) {
         if ($i -gt 0) { Write-Output "" }
         Mostrar-Pelicula $resultadosPeliculas[$i]

@@ -1,6 +1,6 @@
 #!/bin/bash
 #########################################################################
-# Virtualización de Hardware - APL 1 - 2026 Q2 - Ejercicio 3
+# Virtualizacion de Hardware - APL 1 - 2026 Q2 - Ejercicio 3
 # Integrantes:
 #   - MANGHI SCHECK, SANTIAGO - 95054445
 #   - TORRES MORAN, MARIA CELESTE - 44005719
@@ -17,7 +17,7 @@ limpiar_temporales() {
 }
 # EXIT cubre la salida normal y por error; INT/TERM cubren Ctrl+C y kill
 trap limpiar_temporales EXIT
-trap 'echo; echo "Ejecución cancelada por el usuario." >&2; exit 130' INT TERM
+trap 'echo; echo "Ejecucion cancelada por el usuario." >&2; exit 130' INT TERM
 
 mostrar_ayuda() {
     cat << AYUDA
@@ -26,15 +26,15 @@ USO:
     $(basename "$0") --directorio <directorio>
     $(basename "$0") -h | --help
 
-DESCRIPCIÓN:
+DESCRIPCION:
     Busca archivos duplicados dentro de un directorio y todos sus
     subdirectorios. Un archivo se considera duplicado cuando existe otro
-    con el MISMO NOMBRE y el MISMO TAMAÑO, sin importar su contenido.
+    con el MISMO NOMBRE y el MISMO TAMANO, sin importar su contenido.
 
     Por cada archivo duplicado se muestra su nombre y, debajo, las rutas
     de los directorios donde fue encontrado.
 
-PARÁMETROS:
+PARAMETROS:
     -d, --directorio   Ruta del directorio a analizar (obligatorio).
                        Acepta rutas relativas, absolutas o con espacios
                        (en ese caso, escribirla entre comillas).
@@ -48,23 +48,23 @@ AYUDA
 
 error() {
     echo "Error: $1" >&2
-    echo "Para ver cómo usar el script ejecute: $(basename "$0") --help" >&2
+    echo "Para ver como usar el script ejecute: $(basename "$0") --help" >&2
     exit 1
 }
 
 procesar_parametros() {
     DIRECTORIO=""
     if [[ $# -eq 0 ]]; then
-        error "No se indicó ningún parámetro."
+        error "No se indico ningun parametro."
     fi
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -d|--directorio)
                 if [[ -z "${2:-}" || "$2" == -* && ! -d "$2" ]]; then
-                    error "Falta indicar la ruta del directorio después de '$1'."
+                    error "Falta indicar la ruta del directorio despues de '$1'."
                 fi
                 if [[ -n "$DIRECTORIO" ]]; then
-                    error "El parámetro de directorio se indicó más de una vez."
+                    error "El parametro de directorio se indico mas de una vez."
                 fi
                 DIRECTORIO="$2"
                 shift 2
@@ -74,12 +74,12 @@ procesar_parametros() {
                 exit 0
                 ;;
             *)
-                error "El parámetro '$1' no es válido."
+                error "El parametro '$1' no es valido."
                 ;;
         esac
     done
     if [[ -z "$DIRECTORIO" ]]; then
-        error "El parámetro -d / --directorio es obligatorio."
+        error "El parametro -d / --directorio es obligatorio."
     fi
 }
 
@@ -104,8 +104,8 @@ listar_archivos() {
     ARCHIVO_ERRORES=$(mktemp /tmp/ejercicio3_err.XXXXXX) \
         || error "No se pudo crear un archivo temporal en /tmp."
 
-    # -l  formato largo (trae el tamaño)      -R  recursivo
-    # -A  incluye ocultos (sin . y ..)         -n  UID/GID numéricos
+    # -l  formato largo (trae el tamano)      -R  recursivo
+    # -A  incluye ocultos (sin . y ..)         -n  UID/GID numericos
     # --time-style=long-iso  fecha con formato fijo (2 campos)
     # --quoting-style=literal  nombres sin comillas ni escapes
     LC_ALL=C ls -lRAn --time-style=long-iso --quoting-style=literal \
@@ -121,22 +121,22 @@ listar_archivos() {
 
 buscar_duplicados() {
     awk '
-    # Línea de encabezado de directorio: "/ruta/absoluta:"
+    # Linea de encabezado de directorio: "/ruta/absoluta:"
     substr($0, 1, 1) == "/" && substr($0, length($0), 1) == ":" {
         dir_actual = substr($0, 1, length($0) - 1)
         next
     }
-    # Solo archivos regulares (la línea empieza con "-")
+    # Solo archivos regulares (la linea empieza con "-")
     substr($0, 1, 1) == "-" {
         tamanio = $5
         nombre = $0
         # Se quitan los 7 primeros campos (permisos, links, uid, gid,
-        # tamaño, fecha, hora) y queda el nombre completo, aunque tenga espacios
+        # tamano, fecha, hora) y queda el nombre completo, aunque tenga espacios
         sub(/^[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ /, "", nombre)
 
-        clave = nombre SUBSEP tamanio          # array asociativo nombre+tamaño
+        clave = nombre SUBSEP tamanio          # array asociativo nombre+tamano
         if (!(clave in cantidad)) {
-            orden[++total] = clave             # recordamos el orden de aparición
+            orden[++total] = clave             # recordamos el orden de aparicion
             nombres[clave] = nombre
         }
         cantidad[clave]++
@@ -156,7 +156,7 @@ buscar_duplicados() {
         if (encontrados == 0)
             print "No se encontraron archivos duplicados."
     }
-    ' "$ARCHIVO_LS" || error "Ocurrió un problema al procesar la lista de archivos."
+    ' "$ARCHIVO_LS" || error "Ocurrio un problema al procesar la lista de archivos."
 }
 
 main() {

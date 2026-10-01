@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================
-#  Virtualización de Hardware - APL 1 - 2026 Q2
+#  Virtualizacion de Hardware - APL 1 - 2026 Q2
 #  Ejercicio 4 - Demonio de monitoreo y backups
 #
 #  Integrantes del grupo:

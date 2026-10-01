@@ -4,8 +4,8 @@
 
 .DESCRIPTION
     Recorre el directorio indicado (incluyendo todos sus subdirectorios) y
-    considera que un archivo está duplicado cuando existe otro con el MISMO
-    NOMBRE y el MISMO TAMAÑO, sin importar su contenido.
+    considera que un archivo esta duplicado cuando existe otro con el MISMO
+    NOMBRE y el MISMO TAMANO, sin importar su contenido.
     Por cada archivo duplicado muestra su nombre y, debajo, las rutas de los
     directorios donde fue encontrado.
 
@@ -20,7 +20,7 @@
     ./ejercicio3.ps1 -directorio "/home/user/mis documentos"
 
 .NOTES
-    Virtualización de Hardware - APL 1 - 2026 Q2 - Ejercicio 3
+    Virtualizacion de Hardware - APL 1 - 2026 Q2 - Ejercicio 3
     Integrantes:
    - MANGHI SCHECK, SANTIAGO - 95054445
    - TORRES MORAN, MARIA CELESTE - 44005719
@@ -47,8 +47,8 @@ param(
 function Get-ArchivosDuplicados {
     param([string]$Ruta)
 
-    # Array asociativo: clave "nombre|tamaño" -> lista de directorios.
-    # Se usa comparación Ordinal (distingue mayúsculas/minúsculas) porque en
+    # Array asociativo: clave "nombre|tamano" -> lista de directorios.
+    # Se usa comparacion Ordinal (distingue mayusculas/minusculas) porque en
     # Linux "Foto.jpg" y "foto.jpg" son archivos distintos.
     $grupos = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::Ordinal)
     $nombres = @{}
@@ -63,7 +63,7 @@ function Get-ArchivosDuplicados {
     }
 
     foreach ($archivo in $archivos) {
-        # "/" no puede formar parte de un nombre de archivo, así que es un separador seguro
+        # "/" no puede formar parte de un nombre de archivo, asi que es un separador seguro
         $clave = "$($archivo.Name)/$($archivo.Length)"
         if (-not $grupos.ContainsKey($clave)) {
             $grupos[$clave] = [System.Collections.Generic.List[string]]::new()
@@ -93,10 +93,10 @@ try {
     Get-ArchivosDuplicados -Ruta $rutaAbsoluta
 }
 catch {
-    Write-Error "No se pudo completar el análisis del directorio '$directorio'. Detalle: $($_.Exception.Message)"
+    Write-Error "No se pudo completar el analisis del directorio '$directorio'. Detalle: $($_.Exception.Message)"
     exit 1
 }
 finally {
     # Este script no genera archivos temporales; si en el futuro se agregan,
-    # deben eliminarse aquí para no dejar archivos basura.
+    # deben eliminarse aqui para no dejar archivos basura.
 }
