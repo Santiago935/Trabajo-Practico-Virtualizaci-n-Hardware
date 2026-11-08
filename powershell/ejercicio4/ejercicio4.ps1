@@ -89,10 +89,29 @@ function Mostrar-MensajeError {
     exit 1
 }
 
+# Indica si el script corre en Windows. En Windows PowerShell 5.1 la variable $IsWindows
+# no existe, por eso tambien se verifica la edicion 'Desktop' (que solo existe en Windows).
+$script:esWindows = ($PSVersionTable.PSEdition -eq 'Desktop') -or $IsWindows
+
+function Quitar-SeparadorFinal {
+    param([string]$Ruta)
+    # Quita la barra final ('/un dir/' -> '/un dir') sin romper la raiz ('/' o 'C:\').
+    # En Windows una barra invertida final antes de una comilla ("C:\un dir\") rompe los argumentos.
+    $sinBarra = $Ruta.TrimEnd('\', '/')
+    if ([string]::IsNullOrEmpty($sinBarra) -or $sinBarra -match '^[A-Za-z]:$') {
+        return $Ruta
+    }
+    return $sinBarra
+}
+
 function Obtener-RutaArchivoPid {
     param([string]$RutaDir)
     # Genera una ruta unica para el archivo PID basada en el hash MD5 de la ruta absoluta normalizada
-    $rutaNormalizada = [System.IO.Path]::GetFullPath($RutaDir).TrimEnd('\', '/').ToLowerInvariant()
+    $rutaNormalizada = [System.IO.Path]::GetFullPath($RutaDir).TrimEnd('\', '/')
+    # Solo en Windows las rutas no distinguen mayusculas/minusculas; en Linux '/Dir' y '/dir' son distintos
+    if ($script:esWindows) {
+        $rutaNormalizada = $rutaNormalizada.ToLowerInvariant()
+    }
     $md5 = [System.Security.Cryptography.MD5]::Create()
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($rutaNormalizada)
     $hash = ($md5.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join ""
@@ -138,6 +157,36 @@ function Registrar-EventoLog {
     }
     catch {
         # Si no se puede escribir el log, no detener el demonio
+    }
+}
+
+function Crear-ZipConRutasRelativas {
+    param(
+        [string[]]$Archivos,
+        [string]$DirBase,
+        [string]$RutaZip
+    )
+    # Compress-Archive guarda los archivos sueltos todos en la raiz del zip. Como los duplicados
+    # tienen el mismo nombre, al descomprimir uno pisaba al otro. Por eso el zip se arma con las
+    # clases de .NET, indicando el nombre de cada entrada como su ruta relativa al directorio
+    # monitoreado (ej: 'a.txt' y 'sub carpeta/a.txt').
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $base = $DirBase.TrimEnd('\', '/')
+    $zip = [System.IO.Compression.ZipFile]::Open($RutaZip, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($archivo in $Archivos) {
+            # Se recorta el directorio monitoreado del inicio de la ruta completa
+            $relativa = $archivo.Substring($base.Length).TrimStart('\', '/')
+            # El formato ZIP usa '/' como separador en cualquier sistema operativo
+            $relativa = $relativa.Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $archivo, $relativa, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    }
+    finally {
+        # Cierra el zip siempre, aunque falle al agregar un archivo
+        $zip.Dispose()
     }
 }
 
@@ -201,7 +250,7 @@ function Procesar-ArchivoCandidato {
 
         $exitoZip = $false
         try {
-            Compress-Archive -LiteralPath $duplicados.ToArray() -DestinationPath $rutaZip -Force -ErrorAction Stop
+            Crear-ZipConRutasRelativas -Archivos $duplicados.ToArray() -DirBase $DirMonitoreado -RutaZip $rutaZip
             $exitoZip = $true
         }
         catch {
@@ -237,30 +286,47 @@ function Iniciar-BucleDemonio {
     $watcher.Path = $DirMonitoreado
     $watcher.IncludeSubdirectories = $true
     $watcher.NotifyFilter = [System.IO.NotifyFilters]::FileName -bor [System.IO.NotifyFilters]::LastWrite -bor [System.IO.NotifyFilters]::Size
+    # Se suscriben los eventos con Register-ObjectEvent (sin -Action): PowerShell guarda cada
+    # evento en una COLA. Asi, si se crean varios archivos mientras se esta procesando uno
+    # (por ejemplo armando un zip), los demas quedan esperando en la cola y no se pierden.
+    # (Con $watcher.WaitForChanged() solo se capturaba lo que pasaba mientras se esperaba,
+    # y los eventos ocurridos durante el procesamiento se descartaban.)
+    $idCreado = "Ej4_Creado_$PID"
+    $idRenombrado = "Ej4_Renombrado_$PID"
+    Register-ObjectEvent -InputObject $watcher -EventName Created -SourceIdentifier $idCreado | Out-Null
+    Register-ObjectEvent -InputObject $watcher -EventName Renamed -SourceIdentifier $idRenombrado | Out-Null
+
     $watcher.EnableRaisingEvents = $true
 
     try {
         while ($true) {
-            # Esperar eventos con un timeout de 1000 ms para poder responder a la eliminacion del PID file o senales de corte
-            $cambio = $watcher.WaitForChanged([System.IO.WatcherChangeTypes]::Created -bor [System.IO.WatcherChangeTypes]::Renamed, 1000)
+            # Toma el proximo evento de la cola, o espera hasta 1 segundo a que llegue uno.
+            # El timeout permite revisar periodicamente si se pidio detener el demonio.
+            $evento = Wait-Event -Timeout 1
 
             if (-not (Test-Path -LiteralPath $RutaPidFile)) {
-                # Si el archivo PID fue eliminado por una orden externa, finalizamos el demonio
+                # Si el archivo PID fue eliminado por una orden externa (-kill), finalizamos el demonio
                 break
             }
 
-            if ($cambio.TimedOut) {
+            if (-not $evento) {
                 continue
             }
 
-            if ($cambio.Name) {
-                $rutaCompleta = Join-Path $DirMonitoreado $cambio.Name
+            # Se saca el evento de la cola para no procesarlo dos veces
+            Remove-Event -EventIdentifier $evento.EventIdentifier
+
+            if ($evento.SourceIdentifier -eq $idCreado -or $evento.SourceIdentifier -eq $idRenombrado) {
+                # FullPath trae la ruta completa del archivo creado (o del nuevo nombre si fue renombrado)
+                $rutaCompleta = $evento.SourceEventArgs.FullPath
                 Procesar-ArchivoCandidato -RutaArchivo $rutaCompleta -DirMonitoreado $DirMonitoreado -DirSalida $DirSalida
             }
         }
     }
     finally {
         Registrar-EventoLog "Demonio finalizado sobre '$DirMonitoreado'" $DirSalida
+        Unregister-Event -SourceIdentifier $idCreado -ErrorAction SilentlyContinue
+        Unregister-Event -SourceIdentifier $idRenombrado -ErrorAction SilentlyContinue
         if ($watcher) {
             $watcher.EnableRaisingEvents = $false
             $watcher.Dispose()
@@ -276,7 +342,7 @@ function Iniciar-BucleDemonio {
 # -----------------------------------------------------------------------------
 
 try {
-    $directorioAbsoluto = (Resolve-Path -LiteralPath $directorio -ErrorAction Stop).ProviderPath
+    $directorioAbsoluto = Quitar-SeparadorFinal (Resolve-Path -LiteralPath $directorio -ErrorAction Stop).ProviderPath
 }
 catch {
     Mostrar-MensajeError "No se pudo resolver la ruta del directorio a monitorear: '$directorio'."
@@ -292,21 +358,30 @@ if ($kill) {
 
     try {
         $pidDemonio = [int]((Get-Content -LiteralPath $archivoPid -Raw -ErrorAction Stop).Trim())
-        Stop-Process -Id $pidDemonio -Force -ErrorAction SilentlyContinue
     }
     catch {
-        Mostrar-MensajeError "No se pudo detener el proceso del demonio (PID $pidDemonio)."
+        Mostrar-MensajeError "No se pudo leer el archivo de control del demonio."
     }
 
-    # Esperar a que el proceso termine
+    # 1) Pedido de cierre ordenado: el demonio revisa cada 1 segundo si existe el archivo PID
+    #    y, si no existe, sale del bucle ejecutando su bloque finally (log + liberar watcher).
+    Remove-Item -LiteralPath $archivoPid -Force -ErrorAction SilentlyContinue
+
     for ($i = 0; $i -lt 10; $i++) {
         $proc = Get-Process -Id $pidDemonio -ErrorAction SilentlyContinue
         if (-not $proc -or $proc.HasExited) { break }
         Start-Sleep -Milliseconds 500
     }
 
-    if (Test-Path -LiteralPath $archivoPid) {
-        Remove-Item -LiteralPath $archivoPid -Force -ErrorAction SilentlyContinue
+    # 2) Si no termino por su cuenta, se lo fuerza (en Linux equivale a SIGKILL)
+    $proc = Get-Process -Id $pidDemonio -ErrorAction SilentlyContinue
+    if ($proc -and -not $proc.HasExited) {
+        try {
+            Stop-Process -Id $pidDemonio -Force -ErrorAction Stop
+        }
+        catch {
+            Mostrar-MensajeError "No se pudo detener el proceso del demonio (PID $pidDemonio)."
+        }
     }
 
     Write-Host "Demonio detenido para el directorio '$directorioAbsoluto'."
@@ -339,7 +414,7 @@ else {
     if (-not (Test-Path -LiteralPath $salida -PathType Container)) {
         Mostrar-MensajeError "La ruta de salida '$salida' existe pero no es un directorio."
     }
-    $salidaAbsoluta = (Resolve-Path -LiteralPath $salida -ErrorAction Stop).ProviderPath
+    $salidaAbsoluta = Quitar-SeparadorFinal (Resolve-Path -LiteralPath $salida -ErrorAction Stop).ProviderPath
 }
 
 # Validar permisos de escritura en la carpeta de salida
@@ -379,33 +454,58 @@ $workingDir = Split-Path -Path $scriptActualAbsoluto -Parent
 
 $ejecutablePs = (Get-Process -Id $PID).Path
 if (-not $ejecutablePs) {
-    $ejecutablePs = "powershell.exe"
+    # PowerShell 7 se llama 'pwsh' en todas las plataformas; Windows PowerShell 5.1 es 'powershell.exe'
+    if ($PSVersionTable.PSEdition -eq 'Desktop') { $ejecutablePs = "powershell.exe" } else { $ejecutablePs = "pwsh" }
 }
 
-$cmdLine = "`"$ejecutablePs`" -NonInteractive -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptActualAbsoluto`" -directorio `"$directorioAbsoluto`" -salida `"$salidaAbsoluta`" -ModoDemonio"
+# Argumentos comunes para el proceso demonio (las rutas van entre comillas por si tienen espacios)
+$argumentosComunes = "-NonInteractive -NoProfile -File `"$scriptActualAbsoluto`" -directorio `"$directorioAbsoluto`" -salida `"$salidaAbsoluta`" -ModoDemonio"
 
 try {
     $procesoId = $null
-    try {
-        $resultadoWmi = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmdLine } -ErrorAction Stop
-        if ($resultadoWmi.ReturnValue -eq 0 -and $resultadoWmi.ProcessId) {
-            $procesoId = [int]$resultadoWmi.ProcessId
+
+    if ($script:esWindows) {
+        # --- Windows ---
+        # '-WindowStyle Hidden' y '-ExecutionPolicy' solo existen/tienen sentido en Windows
+        $argumentosWin = "-ExecutionPolicy Bypass -WindowStyle Hidden $argumentosComunes"
+        try {
+            # Win32_Process.Create crea el proceso desacoplado de la consola actual
+            $cmdLine = "`"$ejecutablePs`" $argumentosWin"
+            $resultadoWmi = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmdLine } -ErrorAction Stop
+            if ($resultadoWmi.ReturnValue -eq 0 -and $resultadoWmi.ProcessId) {
+                $procesoId = [int]$resultadoWmi.ProcessId
+            }
+        }
+        catch {
+            # Si WMI no esta disponible, se utiliza Start-Process
+        }
+
+        if (-not $procesoId) {
+            $proc = Start-Process -FilePath $ejecutablePs -ArgumentList $argumentosWin -WorkingDirectory $workingDir -WindowStyle Hidden -PassThru -ErrorAction Stop
+            $procesoId = $proc.Id
         }
     }
-    catch {
-        # Si WMI no esta disponible, se utiliza Start-Process
-    }
-
-    if (-not $procesoId) {
-        $argumentos = "-NonInteractive -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptActualAbsoluto`" -directorio `"$directorioAbsoluto`" -salida `"$salidaAbsoluta`" -ModoDemonio"
-        $proc = Start-Process -FilePath $ejecutablePs -ArgumentList $argumentos -WorkingDirectory $workingDir -WindowStyle Hidden -PassThru -ErrorAction Stop
+    else {
+        # --- Linux / macOS ---
+        # Ni 'Start-Process -WindowStyle' ni 'pwsh -WindowStyle' existen fuera de Windows.
+        # Se lanza pwsh a traves de 'setsid', que lo ejecuta en una sesion nueva sin terminal:
+        # asi no muere al cerrar la terminal (SIGHUP) ni con Ctrl+C (SIGINT), y conserva el mismo PID.
+        # La entrada estandar se redirige a /dev/null para que no compita por el teclado.
+        $setsid = Get-Command -Name setsid -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($setsid) {
+            $proc = Start-Process -FilePath $setsid.Source -ArgumentList "`"$ejecutablePs`" $argumentosComunes" -WorkingDirectory $workingDir -RedirectStandardInput "/dev/null" -PassThru -ErrorAction Stop
+        }
+        else {
+            # Sistemas sin setsid (ej. macOS): se lanza pwsh directamente en segundo plano
+            $proc = Start-Process -FilePath $ejecutablePs -ArgumentList $argumentosComunes -WorkingDirectory $workingDir -RedirectStandardInput "/dev/null" -PassThru -ErrorAction Stop
+        }
         $procesoId = $proc.Id
     }
 
     # Escribir el PID para registrar el estado
     Set-Content -LiteralPath $archivoPid -Value "$procesoId" -Force -Encoding ASCII
 
-    Start-Sleep -Milliseconds 800
+    Start-Sleep -Milliseconds 1500
 
     $procVerif = Get-Process -Id $procesoId -ErrorAction SilentlyContinue
     if (-not $procVerif -or $procVerif.HasExited) {
